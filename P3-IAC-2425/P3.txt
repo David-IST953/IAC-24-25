@@ -1,0 +1,121 @@
+# ===========================================================
+# Identificacao do grupo: A65
+#
+# Membros
+# 1. ist113618, Diogo Enes
+# 2. ist114702, David Borges
+# 3. ist114524, José Loureiro
+$
+# ===========================================================
+# Descricao da ISA Implementada
+#
+# == Formato das Instrucoes ==
+#
+# 1: li [imm7|0]
+# Carrega um imediato de 7 bits para o registo R1.
+# Permite carregar uma gama de valores entre -64 até 63.
+# Como li é a instrução que permite carregar valores diretamente no registo, alocamos mais espaço para o imediato deste.
+#
+# 2: addi [imm6|01]
+# Faz a soma de um imediato de 6 bits com o valor do registo R1.
+# Com 6 bits podemos somar valores entre -32 até 31.
+# 
+# 3: subi [imm6|11]
+# Faz a subtração de um imediato de 6 bits com o valor do registo R1.
+# Com 6 bits podemos subtrair valores entre -32 até 31.
+#
+# 4: relu [00000001]
+# Instrução fixa que calcula o max(R1, 0) e guarda no registo R1.
+# Como addi 0 é uma instrução que não altera R1, substituímo-la pelo relu.
+#
+# 5: abs [00000011]
+# Instrução fixa que calcula o abs(R1) e guarda no registo R1.
+# Como subi 0 é uma instrução que não altera R1, substituímo-la pelo abs.
+#
+#
+# == Sumario dos Estagios do Pipeline==
+#
+# Estagio 1:
+#
+# Cópia da instrução da rom para A1.
+#
+# Estagio 2:
+#
+# Bit extender 1-8: estende o bit que define se estamos a subtrair ou somar.
+# Bit extender 6-8: estende o imediato de 6 bits para 8, para somar ou subtrair com R1.
+# XOR: Inverte ou não os bits do imediato da instrução.
+# Guarda a inversão ou não de bits em A2.
+#
+# NOR: Analisa se quaisquer bits do imediato de 6 bits for diferente de 0.
+# AND: Verifica se o primeiro bit da instrução é 1 e o imediato de 6 bits for 0.
+# Guarda o valor do AND em B2.
+#
+# Cópia da instrução de A1 para C2.
+#
+# Estagio 3:
+#
+# Adder (addi/subi): Soma o resultado do mux e o valor de A2 e tem bit 1 em c-in caso a operação for subi, dando assim finalidade a inversão de sinal do A2.
+# No cálculo do overflow, avaliamos se o bit de sinal dos dois números a somar é igual e se o sinal do resultado for diferente ao sinal dos anteriores.
+# O pino ligado ao AND assinala se o resultado deu overflow.
+# Guarda o valor em A3.
+#
+# Bit extender 7-8 (li): Conversão do imediato de 7 bits para 8.
+# Guarda o valor em B3.
+#
+# Negator (abs): Inverte o sinal do resultado do mux.
+# Guarda o valor em C3.
+# 
+# Em D3 guarda-se os seguintes valores
+# bit 0: O bit 0 da instrução
+# bit 1: O bit 1 da instrução
+# bit 2: O bit guardado em B2
+# bit 3: O sinal do resultado do mux
+# 
+# Estagio 4:
+#
+# MUX: Seleção das seguintes entradas possíveis:
+# A3 - Operação addi/subi.
+# B3 - Operação li.
+# C3 - Operação abs.
+# 00 - Operação relu.
+# R1 - Caso abs/relu manterem R1 igual (quando o sinal de R1 é positivo).
+# Guarda o valor em R1.
+#
+# == Sinais de Controlo ==
+# 
+# Overflow
+# Ativa quando é detectado uma alteração do sinal em somas de sinal igual.
+#
+# Mux
+# bit 0:
+# O bit 0 vem da instrução e define se estamos a realizar a operação li.
+#
+# bit 1:
+# O bit 1 vem da instrução e define se estamos a realizar addi ou subi se o bit 2 for 0, relu ou abs se o bit 2 for 1.
+#
+# bit 2:
+# O bit 2 vem de um AND que define se estamos perante uma operação relu ou abs (sobrepõe o bit 1).
+# Este bit tem sinal se o imm6 é 0 e se o bit 0 da instrução for 1.
+#
+# bit 3:
+# O bit 3 diz o sinal de R1, que avalia se é aplicado ou não a operação relu ou abs.
+#
+# Observação:
+# Há certas entradas no MUX desconectadas pois é impossível ter o bit 2 ligado e o bit 0 desligado, ou seja, D3 não pode ter os valores 4, 6, C e E.
+#
+# ===========================================================
+# Requisitos do enunciado que *nao* estao corretamente implementados:
+# (indicar um por linha, ou responder "nenhum")
+# - nenhum
+#
+# ===========================================================
+# Top-3 das otimizacoes que a vossa solucao incorpora:
+# (maximo 140 caracteres por cada otimizacao)
+#
+# 1. Uso de um único somador alterando o sinal do imediato no somador para subtrações, e um detetor de overflow.
+#
+# 2. Uso de todo o espaço de 8 bits (quaisquer 8 bits inseridos é uma instrução única neste trabalho).
+#
+# 3. Uso de um único multiplexer que decide a instrução a ser guardada no registo.
+#
+# ===========================================================
